@@ -511,10 +511,8 @@
         }
 
         async function fetchValuations() {
-            url = `https://uncors.vercel.app/?url=https://www.tipranks.com/stocks/ulta/forecast`;
-            if (sessionStorage.getItem('symbol') == "IBM") {
-                url = `https://uncors.vercel.app/?url=https://www.tipranks.com/stocks/ibm/forecast`;
-            }
+            lower_case_symbol = symbol.toLowerCase();
+            url = `https://uncors.vercel.app/?url=https://www.tipranks.com/stocks/${symbol}/forecast`;
             response = await fetch(url)
             var data = await response.text();
 
