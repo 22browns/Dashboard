@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="style.css" />
+    <title>Investment Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+
+    <!-- jQuery library -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+
+    <!-- Latest compiled JavaScript -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+
+    <script src="https://requirejs.org/docs/release/2.3.5/minified/require.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/cheerio@1.0.0-rc.12/lib/index.min.js"></script>
+    <script src="server.js"></script>
+
+</head>
+
+<body onload='pageLoad()'>
+    <script>
+        var key = sessionStorage.getItem('key');
+        var func = 'TIME_SERIES_INTRADAY';
+        var symbol = sessionStorage.getItem('symbol');
+        var interval;
+        var priceClose = [];
+        let priceTarget = [];
+        var XValues = [];
+        var priceChart;
+        var chartTitle;
+        let cheerio = require('cheerio');
+        var projectionType;
+
+
+
+        async function getData(newUrl) {
+            url = newUrl;
+            const response = await fetch(newUrl);
+            var data = await response.json();
+            return data;
+        }
+        function traverseData(dataset) {
+            priceClose = [];
+            XValues = [];
+            var count = 1;
+            for (let info in dataset) {
+                if (info.includes('Time Series')) {
+                    dataset = dataset[info];
+                    break;
+                }
+            }
+            for (let key in dataset) {
+                if (func == 'TIME_SERIES_INTRADAY') {
+                    XValues.unshift(key.split(" ")[1]);
+                    if (interval == '1min' && count == 61) {
+                        chartTitle = "Price Close Over Last 60 Minutes"
+                        break;
+                    }
+                    if (interval == '5min' && count == 61) {
+                        chartTitle = "Price Close Over Last 2 Hours"
+                        break;
+                    }
+                    if (interval == '15min' && count == 49) {
+                        chartTitle = "Price Close Over Last 12 Hours"
+                        break;
+                    }
+                    if (interval == '30min' && count == 49) {
+                        chartTitle = "Price Close Over Last 24 Hours"
+                        break;
+                    }
+                    if (interval == '60min' && count == 49) {
+                        chartTitle = "Price Close Over Last 48 Hours"
+                        break;
+                    }
+                }
+                else {
+                    if (interval == 'daily' && count == 31) {
+                        chartTitle = "Price Close Over Last 30 Days"
+                        break;
+                    }
+                    if (interval == 'weekly' && count == 25) {
+                        chartTitle = "Price Close Over Last 24 Weeks"
+                        break;
+                    }
+                    if (interval == 'monthly' && key == "2023-07-31") {
+                        chartTitle = "Price Close Since August 2023"
+                        break;
+                    }
+                    XValues.unshift(key);
+                }
+                priceClose.unshift(dataset[key]["4. close"]);
+                if (sessionStorage.getItem('symbol') == "IBM") {
+                            priceTarget.unshift(200.64);
+                        }
+                        else {
+                            priceTarget.unshift(454);
+                        }
+                count++;
+            }
+        }
+
+        async function createPriceChart() {
+            if (priceChart) {
+                priceChart.destroy();
+                chartTitle = "";
+            }
+            var priceContext = document.getElementById("priceChart").getContext("2d");
+            if (interval == 'monthly') {
+                let XValues = ["2023-08-31", "2023-09-29", "2023-10-31", "2023-11-30", "2023-12-29", "2024-01-31",
+                    "2024-02-29", "2024-03-28", "2024-04-30", "2024-05-31", "2024-06-28", "2024-07-31", "2024-08-31", "2024-09-29",
+                    "2024-10-31", "2024-11-30", "2024-12-29", "2025-01-31", "2025-02-29", "2025-03-28", "2025-04-30", "2025-05-31", "2025-06-28", "2025-07-31"];
+                let projections = [];
+                let projectedHigh = [];
+                let projectedAverage = [];
+                let projectedLow = [];
+
+                if (projectionType == "current") {
+                    chartTitle += "Price Close Since August 2023 With Current Price Projections"
+                    projections = await fetchValuations();
+
+                    for (let i = 0; i < XValues.length; i++) {
+                        if (sessionStorage.getItem('symbol') == "IBM") {
+                            priceTarget.unshift(200.64);
+                        }
+                        else {
+                            priceTarget.unshift(454);
+                        }
+
+                        if (i == priceClose.length - 1) {
+                            projectedHigh.push(priceClose[priceClose.length - 1]);
+                            projectedAverage.push(priceClose[priceClose.length - 1]);
+                            projectedLow.push(priceClose[priceClose.length - 1]);
+                        }
+                        else if (i < priceClose.length - 1 || i < XValues.length - 1) {
+                            projectedHigh.push(null);
+                            projectedAverage.push(null);
+                            projectedLow.push(null);
+                        }
+                        else {
+                            projectedHigh.push(projections[0]);
+                            projectedAverage.push(projections[1]);
+                            projectedLow.push(projections[2]);
+                        }
+                    }
+                }
+                else {
+                    chartTitle = "Price Close Since August 2023 With July 2024 Price Projections"
+                    if (sessionStorage.getItem('symbol') == "IBM") {
+                        projections = [184.15, 184.15, 184.15];
+                    }
+                    else {
+                        projections = [547, 454, 338];
+                    }
+
+
+                    for (let i = 0; i < XValues.length; i++) {
+                        if (sessionStorage.getItem('symbol') == "IBM") {
+                            priceTarget.unshift(200.64);
+                        }
+                        else {
+                            priceTarget.unshift(454);
+                        }
+
+                        if (i == 11) {
+                            projectedHigh.push(priceClose[11]);
+                            projectedAverage.push(priceClose[11]);
+                            projectedLow.push(priceClose[11]);
+                        }
+                        else if (i < 11 || i < XValues.length - 1) {
+                            projectedHigh.push(null);
+                            projectedAverage.push(null);
+                            projectedLow.push(null);
+                        }
+                        else {
+                            projectedHigh.push(projections[0]);
+                            projectedAverage.push(projections[1]);
+                            projectedLow.push(projections[2]);
+                        }
+                    }
+                }
+
+
+                priceChart = new Chart(priceContext, {
+                    type: "line",
+                    data: {
+                        labels: XValues,
+                        datasets: [{
+                            label: "Price Target",
+                            data: priceTarget,
+                            borderColor: "Purple",
+                            fill: false
+                        }, {
+                            label: "Price Close",
+                            data: priceClose,
+                            borderColor: "black",
+                            fill: false,
+                            spanGaps: true
+                        }, {
+                            label: "Projected High",
+                            data: projectedHigh,
+                            borderColor: "Green",
+                            fill: false,
+                            spanGaps: true
+                        }, {
+                            label: "Projected Average",
+                            data: projectedAverage,
+                            borderColor: "Blue",
+                            fill: false,
+                            spanGaps: true
+                        }, {
+                            label: "Projected Low",
+                            data: projectedLow,
+                            borderColor: "Red",
+                            fill: false,
+                            spanGaps: true
+                        }]
+                    },
+                    options: {
+                        interaction: {
+                            intersect: false,
+                            mode: 'index',
+                        },
+                        responsive: true,
+                        legend: { display: true },
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: chartTitle
+                            },
+                        }
+                    }
+                });
+            }
+            else {
+                priceChart = new Chart(priceContext, {
+                    type: "line",
+                    data: {
+                        labels: XValues,
+                        datasets: [{
+                            label: "Price Target",
+                            data: priceTarget,
+                            borderColor: "Purple",
+                            fill: false
+                        }, {
+                            label: "Price Close",
+                            data: priceClose,
+                            borderColor: "black",
+                            fill: false
+                        }]
+                    },
+                    options: {
+                        interaction: {
+                            intersect: false,
+                            mode: 'index',
+                        },
+                        responsive: true,
+                        legend: { display: true },
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: chartTitle
+                            },
+                        }
+                    }
+                });
+            }
+        }
+
+        async function Main() {
+            var dataset = await getData(url);
+            traverseData(dataset);
+            projectionType = "july";
+            createPriceChart();
+
+        }
+
+        function changeInterval(newInterval) {
+            var currentProjectionButton = document.getElementById("currentProjection");
+            var julyProjectionButton = document.getElementById("julyProjection");
+            var projectionExplanation = document.getElementById("projectionExplanation");
+            interval = newInterval;
+            if (interval == "monthly") {
+                currentProjectionButton.innerHTML = "<button id=\"currentProjection\" type=\"button\" onclick=\"changeProjection('current')\">Current Price and Projections</button>";
+                julyProjectionButton.innerHTML = "<button id=\"julyProjection\" type=\"button\" onclick=\"changeProjection('july')\">Current Price and July Projection</button>";
+                projectionExplanation.innerHTML = "<p id=\"projectionExplanation\">Current projections are based on TipRanks projections. July Projection is based on my own valuation.<p>";
+            }
+            else {
+                if (julyProjectionButton.innerHTML != "") {
+                    currentProjectionButton.innerHTML = "";
+                    julyProjectionButton.innerHTML = "";
+                    projectionExplanation.innerHTML = "";
+                }
+            }
+            if (interval != 'daily' && interval != 'weekly' && interval != 'monthly') {
+                func = 'TIME_SERIES_INTRADAY';
+                url = `https://www.alphavantage.co/query?function=${func}&symbol=${symbol}&interval=${interval}&apikey=${key}`;
+            }
+            else {
+                var upperCaseInterval = interval.toUpperCase();
+                func = `TIME_SERIES_${upperCaseInterval}_ADJUSTED`;
+                url = `https://www.alphavantage.co/query?function=${func}&symbol=${symbol}&apikey=${key}`;
+            }
+
+            Main();
+        }
+
+        function populateTable() {
+            let incomeData = JSON.parse(sessionStorage.getItem("incomeData"));
+            let revenue2023;
+            let q1_Revenue_Growth;
+            let q2_Revenue_Growth;
+            let q3_Revenue_Growth;
+            let q4_Revenue_Growth;
+            let revenue_Total = 0;
+            let revenue_Denominator = 0;
+
+            let q1_Earnings_Growth;
+            let q2_Earnings_Growth;
+            let q3_Earnings_Growth;
+            let q4_Earnings_Growth;
+            let earnings_Total = 0;
+            let earnings_Denominator = 0;
+
+            let q1_Net_Margin;
+            let q2_Net_Margin;
+            let q3_Net_Margin;
+            let q4_Net_Margin;
+            let margin_Total = 0;
+            let margin_Denominator = 0;
+
+            for (let i = 0; i < incomeData["annualReports"].length; i++) {
+                if (incomeData["annualReports"][i]["fiscalDateEnding"] == "2023-10-28") {
+                    revenue2023 = incomeData["annualReports"][i]["totalRevenue"];
+                    break;
+                }
+            }
+            for (let i = 0; i < incomeData["quarterlyReports"].length; i++) {
+                if (incomeData["quarterlyReports"][i]["fiscalDateEnding"] == "2023-10-28") {
+                    break;
+                }
+                else {
+                    if (incomeData["quarterlyReports"][i]["fiscalDateEnding"] == "2024-02-03") {
+                        let q1_2024_revenue = Number(incomeData["quarterlyReports"][i]["totalRevenue"]);
+                        let q1_2023_revenue = Number(incomeData["quarterlyReports"][i + 4]["totalRevenue"]);
+                        q1_Revenue_Growth = (q1_2024_revenue - q1_2023_revenue) / q1_2023_revenue;
+                        q1_Revenue_Growth = Math.round(q1_Revenue_Growth * 10000) / 100;
+                        revenue_Total += q1_Revenue_Growth;
+                        revenue_Denominator++;
+
+                        let q1_2024_earnings = Number(incomeData["quarterlyReports"][i]["netIncome"]);
+                        let q1_2023_earnings = Number(incomeData["quarterlyReports"][i + 4]["netIncome"]);
+                        q1_Earnings_Growth = (q1_2024_earnings - q1_2023_earnings) / q1_2023_earnings;
+                        q1_Earnings_Growth = Math.round(q1_Earnings_Growth * 10000) / 100;
+                        earnings_Total += q1_Earnings_Growth
+                        earnings_Denominator++;
+
+                        q1_Net_Margin = q1_2024_earnings / q1_2024_revenue;
+                        q1_Net_Margin = Math.round(q1_Net_Margin * 10000) / 100;
+                        margin_Total += q1_Net_Margin
+                        margin_Denominator++;
+
+
+                    }
+                    if (incomeData["quarterlyReports"][i]["fiscalDateEnding"] == "2024-05-04") {
+                        let q2_2024_revenue = Number(incomeData["quarterlyReports"][i]["totalRevenue"]);
+                        let q2_2023_revenue = Number(incomeData["quarterlyReports"][i + 4]["totalRevenue"]);
+                        q2_Revenue_Growth = (q2_2024_revenue - q2_2023_revenue) / q2_2023_revenue;
+                        q2_Revenue_Growth = Math.round(q2_Revenue_Growth * 10000) / 100;
+                        revenue_Total += q2_Revenue_Growth;
+                        revenue_Denominator++;
+
+                        let q2_2024_earnings = Number(incomeData["quarterlyReports"][i]["netIncome"]);
+                        let q2_2023_earnings = Number(incomeData["quarterlyReports"][i + 4]["netIncome"]);
+                        q2_Earnings_Growth = (q2_2024_earnings - q2_2023_earnings) / q2_2023_earnings;
+                        q2_Earnings_Growth = Math.round(q2_Earnings_Growth * 10000) / 100;
+                        earnings_Total += q2_Earnings_Growth;
+                        earnings_Denominator++;
+
+                        q2_Net_Margin = q2_2024_earnings / q2_2024_revenue;
+                        q2_Net_Margin = Math.round(q2_Net_Margin * 10000) / 100;
+                        margin_Total += q2_Net_Margin
+                        margin_Denominator++;
+                    }
+                    if (incomeData["quarterlyReports"][i]["fiscalDateEnding"] == "2024-08-03") {
+                        let q3_2024_revenue = Number(incomeData["quarterlyReports"][i]["totalRevenue"]);
+                        let q3_2023_revenue = Number(incomeData["quarterlyReports"][i + 4]["totalRevenue"]);
+                        q3_Revenue_Growth = (q3_2024_revenue - q3_2023_revenue) / q3_2023_revenue;
+                        q3_Revenue_Growth = Math.round(q3_Revenue_Growth * 10000) / 100;
+                        revenue_Total += q3_Revenue_Growth;
+                        revenue_Denominator++;
+
+                        let q3_2024_earnings = Number(incomeData["quarterlyReports"][i]["netIncome"]);
+                        let q3_2023_earnings = Number(incomeData["quarterlyReports"][i + 4]["netIncome"]);
+                        q3_Earnings_Growth = (q3_2024_earnings - q3_2023_earnings) / q3_2023_earnings;
+                        q3_Earnings_Growth = Math.round(q3_Earnings_Growth * 10000) / 100;
+                        earnings_Total += q3_Earnings_Growth
+                        earnings_Denominator++;
+
+                        q3_Net_Margin = q3_2024_earnings / q3_2024_revenue;
+                        q3_Net_Margin = Math.round(q3_Net_Margin * 10000) / 100;
+                        margin_Total += q3_Net_Margin
+                        margin_Denominator++;
+                    }
+                    if (incomeData["quarterlyReports"][i]["fiscalDateEnding"] == "2024-12-31") {
+                        let q4_2024_revenue = Number(incomeData["quarterlyReports"][i]["totalRevenue"]);
+                        let q4_2023_revenue = Number(incomeData["quarterlyReports"][i + 4]["totalRevenue"]);
+                        q4_Revenue_Growth = (q4_2024_revenue - q4_2023_revenue) / q4_2023_revenue;
+                        q4_Revenue_Growth = Math.round(q4_Revenue_Growth * 10000) / 100;
+                        revenue_Total += q4_Revenue_Growth;
+                        revenue_Denominator++;
+
+                        let q4_2024_earnings = Number(incomeData["quarterlyReports"][i]["netIncome"]);
+                        let q4_2023_earnings = Number(incomeData["quarterlyReports"][i + 4]["netIncome"]);
+                        q4_Earnings_Growth = (q4_2024_earnings - q4_2023_earnings) / q4_2023_earnings;
+                        q4_Earnings_Growth = Math.round(q4_Earnings_Growth * 10000) / 100;
+                        earnings_Total += q4_Earnings_Growth
+                        earnings_Denominator++;
+
+                        q4_Net_Margin = q4_2024_earnings / q4_2024_revenue;
+                        q4_Net_Margin = Math.round(q4_Net_Margin * 10000) / 100;
+                        margin_Total += q4_Net_Margin
+                        margin_Denominator++;
+                    }
+                }
+            }
+
+
+
+
+            let revenueLabel = "Revenue Growth";
+            let targetRevenue;
+            if (sessionStorage.getItem('symbol') == "IBM") {
+                targetRevenue = 3.68;
+            }
+            else {
+                targetRevenue = 5.90;
+            }
+
+            let actualRevenue = Number(revenue_Total / revenue_Denominator);
+            document.getElementById("revenue").innerHTML = revenueLabel;
+            document.getElementById("targetRevenue").innerHTML = targetRevenue + '%';
+            document.getElementById("q1Revenue").innerHTML = q1_Revenue_Growth + '%';
+            document.getElementById("q2Revenue").innerHTML = q2_Revenue_Growth + '%';
+            document.getElementById("q3Revenue").innerHTML = q3_Revenue_Growth + '%';
+            document.getElementById("q4Revenue").innerHTML = q4_Revenue_Growth + '%';
+            document.getElementById("annualRevenue").innerHTML = Math.round(actualRevenue * 100)/100 + '%';
+            document.getElementById("difference1").innerHTML = Math.round((actualRevenue - targetRevenue) * 100) / 100 + '%';
+            if (targetRevenue <= actualRevenue) {
+                document.getElementById("revenueGrowth").classList.add("success");
+            }
+            else {
+                document.getElementById("revenueGrowth").classList.add("danger");
+            }
+
+            let earningsLabel = "Earnings Growth";
+            let targetEarnings;
+            if (sessionStorage.getItem('symbol') == "IBM") {
+                targetEarnings = 6.20;
+            }
+            else {
+                targetEarnings = 2.17;
+            }
+            let actualEarnings = earnings_Total / earnings_Denominator;
+            document.getElementById("earnings").innerHTML = earningsLabel;
+            document.getElementById("targetEarnings").innerHTML = targetEarnings + '%';
+            document.getElementById("q1Earnings").innerHTML = q1_Earnings_Growth + '%';
+            document.getElementById("q2Earnings").innerHTML = q2_Earnings_Growth + '%';
+            document.getElementById("q3Earnings").innerHTML = q3_Earnings_Growth + '%';
+            document.getElementById("q4Earnings").innerHTML = q4_Earnings_Growth + '%';
+            document.getElementById("annualEarnings").innerHTML = Math.round(actualEarnings * 100)/100 + '%';
+            document.getElementById("difference2").innerHTML = Math.round((actualEarnings - targetEarnings) * 100) / 100 + '%';
+            if (targetEarnings <= actualEarnings) {
+                document.getElementById("earningsGrowth").classList.add("success");
+            }
+            else {
+                document.getElementById("earningsGrowth").classList.add("danger");
+            }
+
+
+            let marginLabel = "Net Margin";
+            let targetMargin;
+            if (sessionStorage.getItem('symbol') == "IBM") {
+                targetMargin = 15.0;
+            }
+            else {
+                targetMargin = 10.32;
+            }
+            let actualMargin = margin_Total / margin_Denominator;
+            document.getElementById("Margin").innerHTML = marginLabel;
+            document.getElementById("targetMargin").innerHTML = targetMargin + '%';
+            document.getElementById("q1Margin").innerHTML = q1_Net_Margin + '%';
+            document.getElementById("q2Margin").innerHTML = q2_Net_Margin + '%';
+            document.getElementById("q3Margin").innerHTML = q3_Net_Margin + '%';
+            document.getElementById("q4Margin").innerHTML = q4_Net_Margin + '%';
+            document.getElementById("annualMargin").innerHTML = Math.round(actualMargin * 100)/100 + '%';
+            document.getElementById("difference3").innerHTML = Math.round((actualMargin - targetMargin) * 100) / 100 + '%';
+            document.getElementById("thing").innerHTML = "";
+            if (targetMargin <= actualMargin) {
+                document.getElementById("netMargin").classList.add("success");
+            }
+            else {
+                document.getElementById("netMargin").classList.add("danger");
+            }
+
+
+        }
+
+        async function fetchValuations() {
+            url = `https://uncors.vercel.app/?url=https://www.tipranks.com/stocks/ulta/forecast`;
+            if (sessionStorage.getItem('symbol') == "IBM") {
+                url = `https://uncors.vercel.app/?url=https://www.tipranks.com/stocks/ibm/forecast`;
+            }
+            response = await fetch(url)
+            var data = await response.text();
+
+            var parser = new DOMParser();
+            var doc = parser.parseFromString(data, "text/html");
+
+
+            let results = [];
+            let tableData = doc.querySelectorAll("td.flexrsb.displayflex.laptop_flexc__");
+            tableData.forEach(function (currentValue) {
+                results.push(Number(currentValue.lastChild.textContent.slice(1,)))
+            });
+
+            return results;
+        }
+
+
+        function pageLoad() {
+            changeInterval("daily");
+            populateTable();
+        }
+
+        function changeProjection(newType) {
+            projectionType = newType;
+            createPriceChart();
+        }
+
+
+
+    </script>
+
+    <div class="container-fluid">
+        <div class="row">
+            <h1 class="text-center"><b>Pitch Accuracy Analysis</b></h1>
+            <div class="col-lg-6">
+                <h2 class="text-center">Price Chart</h2>
+                <p class="text-center">Click on the "Monthly" button to see future price projections.
+                </p>
+                <p class="text-center">
+                    <button type="button" onclick="changeInterval('1min')">1 minute</button>
+                    <button type="button" onclick="changeInterval('5min')">5 minutes</button>
+                    <button type="button" onclick="changeInterval('15min')">15 minutes</button>
+                    <button type="button" onclick="changeInterval('30min')">30 minutes</button>
+                    <button type="button" onclick="changeInterval('60min')">1 hour</button>
+                    <button type="button" onclick="changeInterval('daily')">Daily</button>
+                    <button type="button" onclick="changeInterval('weekly')">Weekly</button>
+                    <button type="button" onclick="changeInterval('monthly')">Monthly</button>
+                </p>
+            </div>
+            <div class="col-lg-6"></div>
+        </div>
+        <div class="row">
+            <div class="col-lg-6">
+                <canvas id="priceChart" height="400" width="700"></canvas>
+                <span id="currentProjection"></span>
+                <span id="julyProjection"></span>
+                <span id="projectionExplanation"></span>
+            </div>
+            <div class="col-lg-6">
+                <h2>Target Metrics</h2>
+                <p>The following table summarizes the target metrics within the stock pitch (Target column) and tracks
+                    them against current reportings and predictions (Actual column).
+                    The Difference Column displays the percent difference between the Target Metric and its reported
+                    outcome. Undefined means the data is not yet published on the Alpha Vantage API.
+                </p>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Annual Target</th>
+                            <th>Q1 Actual</th>
+                            <th>Q2 Actual</th>
+                            <th>Q3 Actual</th>
+                            <th>Q4 Actual</th>
+                            <th>Annual Actual</th>
+                            <th>Difference</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr id="revenueGrowth">
+                            <td id="revenue"></td>
+                            <td id="targetRevenue"></td>
+                            <td id="q1Revenue"></td>
+                            <td id="q2Revenue"></td>
+                            <td id="q3Revenue"></td>
+                            <td id="q4Revenue"></td>
+                            <td id="annualRevenue"></td>
+                            <td id="difference1"></td>
+                        </tr>
+                        <tr id="earningsGrowth">
+                            <td id="earnings"></td>
+                            <td id="targetEarnings"></td>
+                            <td id="q1Earnings"></td>
+                            <td id="q2Earnings"></td>
+                            <td id="q3Earnings"></td>
+                            <td id="q4Earnings"></td>
+                            <td id="annualEarnings"></td>
+                            <td id="difference2"></td>
+                        </tr>
+                        <tr id="netMargin">
+                            <td id="Margin"></td>
+                            <td id="targetMargin"></td>
+                            <td id="q1Margin"></td>
+                            <td id="q2Margin"></td>
+                            <td id="q3Margin"></td>
+                            <td id="q4Margin"></td>
+                            <td id="annualMargin"></td>
+                            <td id="difference3"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="row">
+            <h1 id="thing"></h1>
+        </div>
+    </div>
+</body>
+
+</html>
