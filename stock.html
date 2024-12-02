@@ -338,17 +338,17 @@
             let margin_Denominator = 0;
 
             for (let i = 0; i < incomeData["annualReports"].length; i++) {
-                if (incomeData["annualReports"][i]["fiscalDateEnding"] == "2023-10-28") {
+                if (incomeData["annualReports"][i]["fiscalDateEnding"] == "2024-02-03") {
                     revenue2023 = incomeData["annualReports"][i]["totalRevenue"];
                     break;
                 }
             }
             for (let i = 0; i < incomeData["quarterlyReports"].length; i++) {
-                if (incomeData["quarterlyReports"][i]["fiscalDateEnding"] == "2023-10-28") {
+                if (incomeData["quarterlyReports"][i]["fiscalDateEnding"] == "2024-02-03") {
                     break;
                 }
                 else {
-                    if (incomeData["quarterlyReports"][i]["fiscalDateEnding"] == "2024-02-03") {
+                    if (incomeData["quarterlyReports"][i]["fiscalDateEnding"] == "2024-05-04") {
                         let q1_2024_revenue = Number(incomeData["quarterlyReports"][i]["totalRevenue"]);
                         let q1_2023_revenue = Number(incomeData["quarterlyReports"][i + 4]["totalRevenue"]);
                         q1_Revenue_Growth = (q1_2024_revenue - q1_2023_revenue) / q1_2023_revenue;
@@ -370,7 +370,7 @@
 
 
                     }
-                    if (incomeData["quarterlyReports"][i]["fiscalDateEnding"] == "2024-05-04") {
+                    if (incomeData["quarterlyReports"][i]["fiscalDateEnding"] == "2024-08-03") {
                         let q2_2024_revenue = Number(incomeData["quarterlyReports"][i]["totalRevenue"]);
                         let q2_2023_revenue = Number(incomeData["quarterlyReports"][i + 4]["totalRevenue"]);
                         q2_Revenue_Growth = (q2_2024_revenue - q2_2023_revenue) / q2_2023_revenue;
@@ -390,7 +390,7 @@
                         margin_Total += q2_Net_Margin
                         margin_Denominator++;
                     }
-                    if (incomeData["quarterlyReports"][i]["fiscalDateEnding"] == "2024-08-03") {
+                    if (incomeData["quarterlyReports"][i]["fiscalDateEnding"] == "2024-12-31") {
                         let q3_2024_revenue = Number(incomeData["quarterlyReports"][i]["totalRevenue"]);
                         let q3_2023_revenue = Number(incomeData["quarterlyReports"][i + 4]["totalRevenue"]);
                         q3_Revenue_Growth = (q3_2024_revenue - q3_2023_revenue) / q3_2023_revenue;
