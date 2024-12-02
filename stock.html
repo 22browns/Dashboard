@@ -119,7 +119,9 @@
                 let projectedLow = [];
 
                 if (projectionType == "current") {
-                    chartTitle += " With Current Price Projections"
+                    if (!chartTitle.includes(" With Current Price Projections")){
+                        chartTitle += " With Current Price Projections"
+                    }
                     projections = await fetchValuations();
 
                     for (let i = 0; i < XValues.length; i++) {
