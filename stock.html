@@ -107,7 +107,6 @@
         async function createPriceChart() {
             if (priceChart) {
                 priceChart.destroy();
-                chartTitle = "";
             }
             var priceContext = document.getElementById("priceChart").getContext("2d");
             if (interval == 'monthly') {
@@ -120,7 +119,7 @@
                 let projectedLow = [];
 
                 if (projectionType == "current") {
-                    chartTitle += "Price Close Since August 2023 With Current Price Projections"
+                    chartTitle += " With Current Price Projections"
                     projections = await fetchValuations();
 
                     for (let i = 0; i < XValues.length; i++) {
@@ -274,7 +273,7 @@
         async function Main() {
             var dataset = await getData(url);
             traverseData(dataset);
-            projectionType = "july";
+            projectionType = "current";
             createPriceChart();
 
         }
@@ -286,8 +285,11 @@
             interval = newInterval;
             if (interval == "monthly") {
                 currentProjectionButton.innerHTML = "<button id=\"currentProjection\" type=\"button\" onclick=\"changeProjection('current')\">Current Price and Projections</button>";
-                julyProjectionButton.innerHTML = "<button id=\"julyProjection\" type=\"button\" onclick=\"changeProjection('july')\">Current Price and July Projection</button>";
-                projectionExplanation.innerHTML = "<p id=\"projectionExplanation\">Current projections are based on TipRanks projections. July Projection is based on my own valuation.<p>";
+                projectionExplanation.innerHTML = "<p id=\"projectionExplanation\">Current projections are based on TipRanks projections.<p>";
+                if(symbol == "ULTA"){
+                    julyProjectionButton.innerHTML = "<button id=\"julyProjection\" type=\"button\" onclick=\"changeProjection('july')\">Current Price and July Projection</button>";
+                    projectionExplanation.innerHTML = "<p id=\"projectionExplanation\">Current projections are based on TipRanks projections. July Projection is based on my own valuation.<p>";
+                }
             }
             else {
                 if (julyProjectionButton.innerHTML != "") {
@@ -531,7 +533,7 @@
 
 
         function pageLoad() {
-            changeInterval("daily");
+            changeInterval("monthly");
             populateTable();
         }
 
